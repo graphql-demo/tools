@@ -7,7 +7,7 @@ const schema = new Schema({
   user_email: String,
   account_name: String,
   account_password: String,
-  role: Array,
+  role: String,
   token: String,
   job_post: String,
   time_stamp: String,
