@@ -16,14 +16,7 @@ app.use(body_parser.urlencoded({
 }));
 app.use(body_parser.json());
 
-app.use(
-  '/user',
-  graphqlHTTP({
-    schema: User.schema,
-    rootValue: User.rootValue,
-    graphiql: true,
-  }),
-);
+app.use('/user', graphqlHTTP({ schema: User.schema, rootValue: User.rootValue, graphiql: true }));
 
 app.get('/', function (req, res) {
   res.send('server is starting on port 9000');

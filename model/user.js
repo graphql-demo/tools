@@ -10,6 +10,7 @@ const schema = new Schema({
   role: String,
   token: String,
   job_post: String,
+  status: String,
   time_stamp: String,
   avatar: String,
   department: String,
