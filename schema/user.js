@@ -1,62 +1,118 @@
-const { buildSchema } = require('graphql');
+const GraphQL = require("graphql");
+const makeSchema = require("../utlis/makeSchema");
 const model = require('../model');
 const createToken = require('../utlis/createToken');
 
 const { User: UserModel } = model;
+const {
+  GraphQLSchema,
+  GraphQLObjectType,
+  GraphQLInputObjectType,
+  GraphQLUnionType,
+  GraphQLList,
+  // GraphQLEnumType,
+  GraphQLString,
+  GraphQLID,
+} = GraphQL;
 
-const User = buildSchema(`
-  type User {
-    user_id: ID
-    user_name: String
-    user_email: String
-    account_name: String
-    account_password: String
-    role: String
-    token: String
-    job_post: String
-    time_stamp: String
-    avatar: String
-    department: String
-  }
+const User = makeSchema("User", GraphQLObjectType, {
+  user_id: GraphQLID,
+  user_name: GraphQLString,
+  user_email: GraphQLString,
+  account_name: GraphQLString,
+  account_password: GraphQLString,
+  role: GraphQLString,
+  token: GraphQLString,
+  job_post: GraphQLString,
+  time_stamp: GraphQLString,
+  avatar: GraphQLString,
+  department: GraphQLString,
+});
 
-  input UserClue {
-    user_id: ID
-    user_email: String
-    account_name: String
-  }
 
-  input newUser {
-    user_name: String!
-    user_email: String!
-    account_name: String!
-    account_password: String!
-    role: String!
-    job_post: String!
-    avatar: String
-    department: String!
-  }
+const UserId = makeSchema("UserId", GraphQLObjectType, {
+  user_id: GraphQLID,
+});
 
-  input updateUser {
-    user_name: String,
-    user_email: String,
-    account_name: String,
-    account_password: String,
-    role: String,
-    job_post: String,
-    avatar: String,
-    department: String
-  }
+const UserEmail = makeSchema("UserEmail", GraphQLObjectType, {
+  user_email: GraphQLString,
+});
 
-  type Query {
-    user(clue: UserClue!): User
-    userList(user_name: String, role: String, job_post: String, department: String): [User]
-  }
+const AccountName = makeSchema("AccountName", GraphQLObjectType, {
+  account_name: GraphQLString,
+});
 
-  type Mutation {
-    register(user_option: newUser!): User
-    update(clue: UserClue!, data: updateUser!): String
-  }
-`)
+// const newUser = makeSchema("newUser", GraphQLInputObjectType, {
+//     user_name: GraphQLString,
+//     user_email: GraphQLString,
+//     account_name: GraphQLString,
+//     account_password: GraphQLString,
+//     role: GraphQLString,
+//     job_post: GraphQLString,
+//     avatar: GraphQLString,
+//     department: GraphQLString,
+// });
+
+const updateUser = makeSchema("updateUser", GraphQLInputObjectType, {
+  user_name: GraphQLString,
+  user_email: GraphQLString,
+  account_name: GraphQLString,
+  account_password: GraphQLString,
+  role: GraphQLString,
+  job_post: GraphQLString,
+  avatar: GraphQLString,
+  department: GraphQLString,
+});
+
+const UserClue = new GraphQLUnionType({
+  name: "UserClue",
+  types: [UserId, UserEmail, AccountName],
+  resolveType: (value) => {
+    if (value instanceof UserId) {
+      return UserId;
+    } else if (value instanceof UserEmail) {
+      return UserEmail;
+    } else {
+      return AccountName;
+    }
+  },
+});
+
+const Query = new GraphQLObjectType({
+  name: "Query",
+  fields: {
+    user: {
+      type: User,
+      args: {
+        clue: { type: UserClue },
+      },
+      resolve: async ({ clue: query }) => {
+        return await UserModel.findOne(query).then((data) => data);
+      },
+    },
+    userList: {
+      type: new GraphQLList(User),
+      args: {
+        clue: { type: UserClue },
+        data: { type: updateUser },
+      },
+      resolve: async (query) => {
+        return await UserModel.find(query).then((data) => {
+          return data || [];
+        });
+      },
+    },
+  },
+});
+
+// const Mutation = new GraphQLObjectType({
+//   name: "Mutation",
+//   fields: {
+
+//   }
+// });
+
+var schema = new GraphQLSchema({ query: Query });
 
 const root = {
   update: async ({ clue, data }) => {
@@ -93,6 +149,6 @@ const root = {
 };
 
 module.exports = {
-  schema: User,
-  rootValue: root,
+  schema: schema,
+  // rootValue: root,
 };

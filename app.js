@@ -20,7 +20,7 @@ app.use(
   '/user',
   graphqlHTTP({
     schema: User.schema,
-    rootValue: User.rootValue,
+    // rootValue: User.rootValue,
     graphiql: true,
   }),
 );
