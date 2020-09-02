@@ -1,7 +1,9 @@
 import merge from 'lodash/merge'
 
 import user from './user.js'
+import book from './book.js'
 
 const PureObj = Object.create(null)
 
-export default merge(PureObj, user)
+const resolvers = merge(PureObj, user, book)
+export default resolvers

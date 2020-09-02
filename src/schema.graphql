@@ -50,7 +50,56 @@ input updateUser {
 	department: String
 }
 
-### query ###
+# Book Schema
+type Book {
+	book_id: ID
+	book_name: String
+	book_press: String
+	status: String
+	create_time: String
+	book_class: String
+	trace: [Borrow]
+}
+
+type Borrow {
+	borrow_time: String
+	return_time: String
+	borrow_user_id: String
+	borrow_user_name: String
+	comment: String
+	score: String
+}
+
+input BookClue {
+	book_id: ID
+	book_name: String
+	status: String
+	create_time: String
+	book_class: String
+}
+
+input newBook {
+	book_name: String!
+	book_press: String!
+	book_class: String!
+	status: String
+}
+
+input updateBook {
+	book_name: String
+	book_press: String
+	book_class: String
+	status: String
+}
+
+input borrowLog {
+	borrow_time: String!
+	return_time: String
+	comment: String
+	score: String
+}
+
+############ query ############
 type Query {
 	### 查询单个用户
 	user(input: UserClue!): UserBase
@@ -61,13 +110,25 @@ type Query {
 		job_post: String
 		department: String
 	): [UserBase]
+	### 查询书籍信息
+	book(input: BookClue!): Book
+	### 查询书籍列表
+	books(input: BookClue): [Book]
 }
-### mutation ###
+############ mutation ############
 type Mutation {
 	### 注册新用户
 	register(user_option: newUser!): UserAuth
 	### 更新用户信息
-	update(input: UserClue!, data: updateUser!): String
+	updateUser(input: UserClue!, data: updateUser!): String
 	### 用户登录
 	login(account_name: String!, account_password: String!): UserAuth
+	### 新建一本书
+	createBook(input: newBook!): Book
+	### 删除一本书
+	deleteBook(book_id: ID): String
+	### 更新一本书
+	updateBook(book_id: ID, input: updateBook): String
+
+	updateBookTrace(book_id: ID, input: borrowLog): String
 }

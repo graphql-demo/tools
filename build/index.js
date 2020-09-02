@@ -87,6 +87,40 @@ module.exports =
 /************************************************************************/
 /******/ ({
 
+/***/ "./model/book.js":
+/*!***********************!*\
+  !*** ./model/book.js ***!
+  \***********************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+const mongoose = __webpack_require__(/*! mongoose */ "mongoose");
+
+const Schema = mongoose.Schema;
+const schema = new Schema({
+  book_id: {
+    type: Schema.Types.ObjectId,
+    ref: 'book_id'
+  },
+  book_name: String,
+  book_press: String,
+  status: String,
+  create_time: String,
+  book_class: String,
+  trace: [{
+    log_id: Schema.Types.ObjectId,
+    borrow_time: String,
+    return_time: String,
+    borrow_user_id: String,
+    borrow_user_name: String,
+    comment: String,
+    score: String
+  }]
+});
+module.exports = schema;
+
+/***/ }),
+
 /***/ "./model/index.js":
 /*!************************!*\
   !*** ./model/index.js ***!
@@ -104,12 +138,19 @@ const db = mongoose.createConnection('mongodb://119.23.36.140/cestc');
 
 const user_schema = __webpack_require__(/*! ./user */ "./model/user.js");
 
+const book_schema = __webpack_require__(/*! ./book */ "./model/book.js");
+
 autoIncrement.initialize(db);
 user_schema.plugin(autoIncrement.plugin, {
   model: 'user',
   field: 'user_id'
 });
-exports.User = db.model('User', user_schema); // exports.ServiceDefineVersion = service_define_db.model('ServiceDefineVersion', service_define_version, 'service_define_version');
+book_schema.plugin(autoIncrement.plugin, {
+  model: 'book',
+  field: 'book_id'
+});
+exports.User = db.model('User', user_schema);
+exports.Book = db.model('Book', book_schema); // exports.ServiceDefineVersion = service_define_db.model('ServiceDefineVersion', service_define_version, 'service_define_version');
 
 /***/ }),
 
@@ -10401,17 +10442,31 @@ function getVisitor(visitor, specifiers) {
   !*** ./src sync ^\.\/(context|context\/index)\.(js|ts)$ ***!
   \**********************************************************/
 /*! no static exports found */
-/***/ (function(module, exports) {
+/***/ (function(module, exports, __webpack_require__) {
 
-function webpackEmptyContext(req) {
-	var e = new Error("Cannot find module '" + req + "'");
-	e.code = 'MODULE_NOT_FOUND';
-	throw e;
+var map = {
+	"./context.js": "./src/context.js"
+};
+
+
+function webpackContext(req) {
+	var id = webpackContextResolve(req);
+	return __webpack_require__(id);
 }
-webpackEmptyContext.keys = function() { return []; };
-webpackEmptyContext.resolve = webpackEmptyContext;
-module.exports = webpackEmptyContext;
-webpackEmptyContext.id = "./src sync recursive ^\\.\\/(context|context\\/index)\\.(js|ts)$";
+function webpackContextResolve(req) {
+	if(!__webpack_require__.o(map, req)) {
+		var e = new Error("Cannot find module '" + req + "'");
+		e.code = 'MODULE_NOT_FOUND';
+		throw e;
+	}
+	return map[req];
+}
+webpackContext.keys = function webpackContextKeys() {
+	return Object.keys(map);
+};
+webpackContext.resolve = webpackContextResolve;
+module.exports = webpackContext;
+webpackContext.id = "./src sync recursive ^\\.\\/(context|context\\/index)\\.(js|ts)$";
 
 /***/ }),
 
@@ -10481,6 +10536,126 @@ webpackContext.id = "./src sync recursive ^\\.\\/(schema|schema\\/index)\\.(gql|
 
 /***/ }),
 
+/***/ "./src/context.js":
+/*!************************!*\
+  !*** ./src/context.js ***!
+  \************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = req => {
+  console.log("req =====>", req);
+  return req;
+};
+
+/***/ }),
+
+/***/ "./src/resolvers/book.js":
+/*!*******************************!*\
+  !*** ./src/resolvers/book.js ***!
+  \*******************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+const lodash = __webpack_require__(/*! lodash */ "lodash");
+
+const model = __webpack_require__(/*! ../../model */ "./model/index.js");
+
+const {
+  Book
+} = model;
+module.exports = {
+  Query: {
+    book: async (parent, {
+      input
+    }) => {
+      if (lodash.isEmpty(input)) {
+        throw new Error("缺少必要参数");
+      }
+
+      return await Book.findOne(input).then(data => data);
+    },
+    books: async (parent, {
+      input
+    }) => {
+      console.log("parent", parent);
+      return await Book.find(input).then(data => data);
+    }
+  },
+  Mutation: {
+    createBook: async (parent, {
+      input
+    }) => {
+      const {
+        book_name,
+        book_press
+      } = input;
+      const hasDuplicate = await Book.findOne({
+        book_name,
+        book_press
+      });
+
+      if (hasDuplicate) {
+        throw new Error('存在相同书籍！');
+      }
+
+      const new_book = new Book(input);
+      return await new_book.save();
+    },
+    deleteBook: async (parent, {
+      book_id
+    }) => {
+      return await Book.remove({
+        book_id
+      }).then(({
+        deletedCount,
+        ok
+      }) => {
+        if (deletedCount !== 0 && ok) {
+          return "删除成功";
+        } else {
+          return "系统异常！";
+        }
+      });
+    },
+    updateBook: async (parent, {
+      book_id,
+      input
+    }) => {
+      return await Book.update({
+        book_id
+      }, input).then(({
+        ok
+      }) => {
+        return ok ? '操作成功' : '操作失败';
+      });
+    },
+    updateBookTrace: async (parent, {
+      book_id,
+      input
+    }) => {
+      return await Book.update({
+        book_id
+      }, {
+        $push: {
+          trace: input
+        }
+      }).then(({
+        deletedCount,
+        ok
+      }) => {
+        if (deletedCount !== 0 && ok) {
+          return "操作成功";
+        } else {
+          return "系统异常！";
+        }
+      });
+    }
+  }
+};
+
+/***/ }),
+
 /***/ "./src/resolvers/index.js":
 /*!********************************!*\
   !*** ./src/resolvers/index.js ***!
@@ -10494,10 +10669,14 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var lodash_merge__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(lodash_merge__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var _user_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./user.js */ "./src/resolvers/user.js");
 /* harmony import */ var _user_js__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_user_js__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony import */ var _book_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./book.js */ "./src/resolvers/book.js");
+/* harmony import */ var _book_js__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(_book_js__WEBPACK_IMPORTED_MODULE_2__);
+
 
 
 const PureObj = Object.create(null);
-/* harmony default export */ __webpack_exports__["default"] = (lodash_merge__WEBPACK_IMPORTED_MODULE_0___default()(PureObj, _user_js__WEBPACK_IMPORTED_MODULE_1___default.a));
+const resolvers = lodash_merge__WEBPACK_IMPORTED_MODULE_0___default()(PureObj, _user_js__WEBPACK_IMPORTED_MODULE_1___default.a, _book_js__WEBPACK_IMPORTED_MODULE_2___default.a);
+/* harmony default export */ __webpack_exports__["default"] = (resolvers);
 
 /***/ }),
 
@@ -10535,7 +10714,7 @@ module.exports = {
     }
   },
   Mutation: {
-    update: async (parent, {
+    updateUser: async (parent, {
       input,
       data
     }) => {
@@ -10622,8 +10801,8 @@ module.exports = {
 /***/ (function(module, exports) {
 
 
-    var doc = {"kind":"Document","definitions":[{"kind":"ObjectTypeDefinition","name":{"kind":"Name","value":"UserBase"},"interfaces":[],"directives":[],"fields":[{"kind":"FieldDefinition","name":{"kind":"Name","value":"user_id"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"status"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"user_name"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"user_email"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"role"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"job_post"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"avatar"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"department"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]}]},{"kind":"ObjectTypeDefinition","name":{"kind":"Name","value":"UserAuth"},"interfaces":[],"directives":[],"fields":[{"kind":"FieldDefinition","name":{"kind":"Name","value":"user_id"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"status"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"user_name"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"user_email"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"account_name"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"token"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"time_stamp"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]}]},{"kind":"InputObjectTypeDefinition","name":{"kind":"Name","value":"UserClue"},"directives":[],"fields":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"user_id"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"user_email"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"account_name"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]}]},{"kind":"InputObjectTypeDefinition","name":{"kind":"Name","value":"newUser"},"directives":[],"fields":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"user_name"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"user_email"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"account_name"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"account_password"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"role"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"job_post"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"avatar"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"department"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]}]},{"kind":"InputObjectTypeDefinition","name":{"kind":"Name","value":"updateUser"},"directives":[],"fields":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"user_name"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"user_email"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"account_name"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"account_password"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"role"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"job_post"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"avatar"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"department"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]}]},{"kind":"ObjectTypeDefinition","name":{"kind":"Name","value":"Query"},"interfaces":[],"directives":[],"fields":[{"kind":"FieldDefinition","name":{"kind":"Name","value":"user"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"input"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UserClue"}}},"directives":[]}],"type":{"kind":"NamedType","name":{"kind":"Name","value":"UserBase"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"userList"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"user_name"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"role"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"job_post"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"department"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]}],"type":{"kind":"ListType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UserBase"}}},"directives":[]}]},{"kind":"ObjectTypeDefinition","name":{"kind":"Name","value":"Mutation"},"interfaces":[],"directives":[],"fields":[{"kind":"FieldDefinition","name":{"kind":"Name","value":"register"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"user_option"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"newUser"}}},"directives":[]}],"type":{"kind":"NamedType","name":{"kind":"Name","value":"UserAuth"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"update"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"input"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UserClue"}}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"data"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"updateUser"}}},"directives":[]}],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"login"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"account_name"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"account_password"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]}],"type":{"kind":"NamedType","name":{"kind":"Name","value":"UserAuth"}},"directives":[]}]}],"loc":{"start":0,"end":1280}};
-    doc.loc.source = {"body":"# User Schema\r\n\r\n## 基础信息\r\ntype UserBase {\r\n\tuser_id: ID\r\n\tstatus: String\r\n\tuser_name: String\r\n\tuser_email: String\r\n\trole: String\r\n\tjob_post: String\r\n\tavatar: String\r\n\tdepartment: String\r\n}\r\n## 鉴权信息\r\ntype UserAuth {\r\n\tuser_id: ID\r\n\tstatus: String\r\n\tuser_name: String\r\n\tuser_email: String\r\n\taccount_name: String\r\n\ttoken: String\r\n\ttime_stamp: String\r\n}\r\n## 筛选条件\r\ninput UserClue {\r\n\tuser_id: ID\r\n\tuser_email: String\r\n\taccount_name: String\r\n}\r\n## 新用户基本信息\r\ninput newUser {\r\n\tuser_name: String!\r\n\tuser_email: String!\r\n\taccount_name: String!\r\n\taccount_password: String!\r\n\trole: String!\r\n\tjob_post: String!\r\n\tavatar: String\r\n\tdepartment: String!\r\n}\r\n## 更新用户信息\r\ninput updateUser {\r\n\tuser_name: String\r\n\tuser_email: String\r\n\taccount_name: String\r\n\taccount_password: String\r\n\trole: String\r\n\tjob_post: String\r\n\tavatar: String\r\n\tdepartment: String\r\n}\r\n\r\n### query ###\r\ntype Query {\r\n\t### 查询单个用户\r\n\tuser(input: UserClue!): UserBase\r\n\t### 获取用户列表\r\n\tuserList(\r\n\t\tuser_name: String\r\n\t\trole: String\r\n\t\tjob_post: String\r\n\t\tdepartment: String\r\n\t): [UserBase]\r\n}\r\n### mutation ###\r\ntype Mutation {\r\n\t### 注册新用户\r\n\tregister(user_option: newUser!): UserAuth\r\n\t### 更新用户信息\r\n\tupdate(input: UserClue!, data: updateUser!): String\r\n\t### 用户登录\r\n\tlogin(account_name: String!, account_password: String!): UserAuth\r\n}\r\n","name":"GraphQL request","locationOffset":{"line":1,"column":1}};
+    var doc = {"kind":"Document","definitions":[{"kind":"ObjectTypeDefinition","name":{"kind":"Name","value":"UserBase"},"interfaces":[],"directives":[],"fields":[{"kind":"FieldDefinition","name":{"kind":"Name","value":"user_id"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"status"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"user_name"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"user_email"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"role"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"job_post"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"avatar"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"department"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]}]},{"kind":"ObjectTypeDefinition","name":{"kind":"Name","value":"UserAuth"},"interfaces":[],"directives":[],"fields":[{"kind":"FieldDefinition","name":{"kind":"Name","value":"user_id"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"status"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"user_name"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"user_email"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"account_name"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"token"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"time_stamp"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]}]},{"kind":"InputObjectTypeDefinition","name":{"kind":"Name","value":"UserClue"},"directives":[],"fields":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"user_id"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"user_email"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"account_name"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]}]},{"kind":"InputObjectTypeDefinition","name":{"kind":"Name","value":"newUser"},"directives":[],"fields":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"user_name"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"user_email"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"account_name"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"account_password"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"role"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"job_post"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"avatar"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"department"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]}]},{"kind":"InputObjectTypeDefinition","name":{"kind":"Name","value":"updateUser"},"directives":[],"fields":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"user_name"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"user_email"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"account_name"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"account_password"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"role"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"job_post"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"avatar"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"department"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]}]},{"kind":"ObjectTypeDefinition","name":{"kind":"Name","value":"Book"},"interfaces":[],"directives":[],"fields":[{"kind":"FieldDefinition","name":{"kind":"Name","value":"book_id"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"book_name"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"book_press"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"status"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"create_time"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"book_class"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"trace"},"arguments":[],"type":{"kind":"ListType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Borrow"}}},"directives":[]}]},{"kind":"ObjectTypeDefinition","name":{"kind":"Name","value":"Borrow"},"interfaces":[],"directives":[],"fields":[{"kind":"FieldDefinition","name":{"kind":"Name","value":"borrow_time"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"return_time"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"borrow_user_id"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"borrow_user_name"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"comment"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"score"},"arguments":[],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]}]},{"kind":"InputObjectTypeDefinition","name":{"kind":"Name","value":"BookClue"},"directives":[],"fields":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"book_id"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"book_name"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"status"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"create_time"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"book_class"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]}]},{"kind":"InputObjectTypeDefinition","name":{"kind":"Name","value":"newBook"},"directives":[],"fields":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"book_name"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"book_press"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"book_class"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"status"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]}]},{"kind":"InputObjectTypeDefinition","name":{"kind":"Name","value":"updateBook"},"directives":[],"fields":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"book_name"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"book_press"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"book_class"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"status"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]}]},{"kind":"InputObjectTypeDefinition","name":{"kind":"Name","value":"borrowLog"},"directives":[],"fields":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"borrow_time"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"return_time"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"comment"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"score"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]}]},{"kind":"ObjectTypeDefinition","name":{"kind":"Name","value":"Query"},"interfaces":[],"directives":[],"fields":[{"kind":"FieldDefinition","name":{"kind":"Name","value":"user"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"input"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UserClue"}}},"directives":[]}],"type":{"kind":"NamedType","name":{"kind":"Name","value":"UserBase"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"userList"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"user_name"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"role"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"job_post"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"department"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]}],"type":{"kind":"ListType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UserBase"}}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"book"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"input"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"BookClue"}}},"directives":[]}],"type":{"kind":"NamedType","name":{"kind":"Name","value":"Book"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"books"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"input"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"BookClue"}},"directives":[]}],"type":{"kind":"ListType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Book"}}},"directives":[]}]},{"kind":"ObjectTypeDefinition","name":{"kind":"Name","value":"Mutation"},"interfaces":[],"directives":[],"fields":[{"kind":"FieldDefinition","name":{"kind":"Name","value":"register"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"user_option"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"newUser"}}},"directives":[]}],"type":{"kind":"NamedType","name":{"kind":"Name","value":"UserAuth"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"updateUser"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"input"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UserClue"}}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"data"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"updateUser"}}},"directives":[]}],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"login"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"account_name"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"account_password"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},"directives":[]}],"type":{"kind":"NamedType","name":{"kind":"Name","value":"UserAuth"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"createBook"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"input"},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"newBook"}}},"directives":[]}],"type":{"kind":"NamedType","name":{"kind":"Name","value":"Book"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"deleteBook"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"book_id"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}},"directives":[]}],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"updateBook"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"book_id"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"input"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"updateBook"}},"directives":[]}],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]},{"kind":"FieldDefinition","name":{"kind":"Name","value":"updateBookTrace"},"arguments":[{"kind":"InputValueDefinition","name":{"kind":"Name","value":"book_id"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}},"directives":[]},{"kind":"InputValueDefinition","name":{"kind":"Name","value":"input"},"type":{"kind":"NamedType","name":{"kind":"Name","value":"borrowLog"}},"directives":[]}],"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}},"directives":[]}]}],"loc":{"start":0,"end":2372}};
+    doc.loc.source = {"body":"# User Schema\r\n\r\n## 基础信息\r\ntype UserBase {\r\n\tuser_id: ID\r\n\tstatus: String\r\n\tuser_name: String\r\n\tuser_email: String\r\n\trole: String\r\n\tjob_post: String\r\n\tavatar: String\r\n\tdepartment: String\r\n}\r\n## 鉴权信息\r\ntype UserAuth {\r\n\tuser_id: ID\r\n\tstatus: String\r\n\tuser_name: String\r\n\tuser_email: String\r\n\taccount_name: String\r\n\ttoken: String\r\n\ttime_stamp: String\r\n}\r\n## 筛选条件\r\ninput UserClue {\r\n\tuser_id: ID\r\n\tuser_email: String\r\n\taccount_name: String\r\n}\r\n## 新用户基本信息\r\ninput newUser {\r\n\tuser_name: String!\r\n\tuser_email: String!\r\n\taccount_name: String!\r\n\taccount_password: String!\r\n\trole: String!\r\n\tjob_post: String!\r\n\tavatar: String\r\n\tdepartment: String!\r\n}\r\n## 更新用户信息\r\ninput updateUser {\r\n\tuser_name: String\r\n\tuser_email: String\r\n\taccount_name: String\r\n\taccount_password: String\r\n\trole: String\r\n\tjob_post: String\r\n\tavatar: String\r\n\tdepartment: String\r\n}\r\n\r\n# Book Schema\r\ntype Book {\r\n\tbook_id: ID\r\n\tbook_name: String\r\n\tbook_press: String\r\n\tstatus: String\r\n\tcreate_time: String\r\n\tbook_class: String\r\n\ttrace: [Borrow]\r\n}\r\n\r\ntype Borrow {\r\n\tborrow_time: String\r\n\treturn_time: String\r\n\tborrow_user_id: String\r\n\tborrow_user_name: String\r\n\tcomment: String\r\n\tscore: String\r\n}\r\n\r\ninput BookClue {\r\n\tbook_id: ID\r\n\tbook_name: String\r\n\tstatus: String\r\n\tcreate_time: String\r\n\tbook_class: String\r\n}\r\n\r\ninput newBook {\r\n\tbook_name: String!\r\n\tbook_press: String!\r\n\tbook_class: String!\r\n\tstatus: String\r\n}\r\n\r\ninput updateBook {\r\n\tbook_name: String\r\n\tbook_press: String\r\n\tbook_class: String\r\n\tstatus: String\r\n}\r\n\r\ninput borrowLog {\r\n\tborrow_time: String!\r\n\treturn_time: String\r\n\tcomment: String\r\n\tscore: String\r\n}\r\n\r\n############ query ############\r\ntype Query {\r\n\t### 查询单个用户\r\n\tuser(input: UserClue!): UserBase\r\n\t### 获取用户列表\r\n\tuserList(\r\n\t\tuser_name: String\r\n\t\trole: String\r\n\t\tjob_post: String\r\n\t\tdepartment: String\r\n\t): [UserBase]\r\n\t### 查询书籍信息\r\n\tbook(input: BookClue!): Book\r\n\t### 查询书籍列表\r\n\tbooks(input: BookClue): [Book]\r\n}\r\n############ mutation ############\r\ntype Mutation {\r\n\t### 注册新用户\r\n\tregister(user_option: newUser!): UserAuth\r\n\t### 更新用户信息\r\n\tupdateUser(input: UserClue!, data: updateUser!): String\r\n\t### 用户登录\r\n\tlogin(account_name: String!, account_password: String!): UserAuth\r\n\t### 新建一本书\r\n\tcreateBook(input: newBook!): Book\r\n\t### 删除一本书\r\n\tdeleteBook(book_id: ID): String\r\n\t### 更新一本书\r\n\tupdateBook(book_id: ID, input: updateBook): String\r\n\r\n\tupdateBookTrace(book_id: ID, input: borrowLog): String\r\n}\r\n","name":"GraphQL request","locationOffset":{"line":1,"column":1}};
   
 
     var names = {};

@@ -19,7 +19,7 @@ module.exports = {
     },
   },
   Mutation: {
-    update: async (parent, { input, data }) => {
+    updateUser: async (parent, { input, data }) => {
       return await UserModel.update(input, data).then(({ ok }) => {
         return ok ? '操作成功' : '操作失败'
       })
