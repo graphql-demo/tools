@@ -4,7 +4,8 @@
 	"description": "",
 	"main": "index.js",
 	"scripts": {
-		"start": "supervisor --harmary app.js",
+		"start": "graphpack",
+		"build": "graphpack build",
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
 	"keywords": [],
@@ -17,7 +18,10 @@
 		"cors": "^2.8.5",
 		"express": "^4.17.1",
 		"express-graphql": "^0.11.0",
+		"graphpack": "^1.0.9",
 		"graphql": "^15.3.0",
+		"graphql-tag": "^2.11.0",
+		"lodash": "^4.17.20",
 		"mongoose": "^5.10.2",
 		"mongoose-auto-increment": "^5.0.1",
 		"supervisor": "^0.12.0"

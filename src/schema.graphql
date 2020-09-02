@@ -1,0 +1,73 @@
+# User Schema
+
+## 基础信息
+type UserBase {
+	user_id: ID
+	status: String
+	user_name: String
+	user_email: String
+	role: String
+	job_post: String
+	avatar: String
+	department: String
+}
+## 鉴权信息
+type UserAuth {
+	user_id: ID
+	status: String
+	user_name: String
+	user_email: String
+	account_name: String
+	token: String
+	time_stamp: String
+}
+## 筛选条件
+input UserClue {
+	user_id: ID
+	user_email: String
+	account_name: String
+}
+## 新用户基本信息
+input newUser {
+	user_name: String!
+	user_email: String!
+	account_name: String!
+	account_password: String!
+	role: String!
+	job_post: String!
+	avatar: String
+	department: String!
+}
+## 更新用户信息
+input updateUser {
+	user_name: String
+	user_email: String
+	account_name: String
+	account_password: String
+	role: String
+	job_post: String
+	avatar: String
+	department: String
+}
+
+### query ###
+type Query {
+	### 查询单个用户
+	user(input: UserClue!): UserBase
+	### 获取用户列表
+	userList(
+		user_name: String
+		role: String
+		job_post: String
+		department: String
+	): [UserBase]
+}
+### mutation ###
+type Mutation {
+	### 注册新用户
+	register(user_option: newUser!): UserAuth
+	### 更新用户信息
+	update(input: UserClue!, data: updateUser!): String
+	### 用户登录
+	login(account_name: String!, account_password: String!): UserAuth
+}
