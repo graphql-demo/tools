@@ -10,8 +10,8 @@ module.exports = {
       }
       return await Book.findOne(input).then(data => data)
     },
-    books: async (parent, { input }) => {
-      console.log("parent", parent)
+    books: async (parent, { input }, req) => {
+      console.log("req", req)
       return await Book.find(input).then(data => data)
     },
   },

@@ -10544,7 +10544,7 @@ webpackContext.id = "./src sync recursive ^\\.\\/(schema|schema\\/index)\\.(gql|
 /***/ (function(module, exports) {
 
 module.exports = req => {
-  console.log("req =====>", req);
+  // console.log("req =====>", req)
   return req;
 };
 
@@ -10577,8 +10577,8 @@ module.exports = {
     },
     books: async (parent, {
       input
-    }) => {
-      console.log("parent", parent);
+    }, req) => {
+      console.log("req", req);
       return await Book.find(input).then(data => data);
     }
   },
